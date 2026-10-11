@@ -930,7 +930,15 @@ const Snd = (() => {
 
   const play = fn => { if (ac && ac.state === "running" && !muted) fn(ac.currentTime); };
   return {
-    start() { if (!ac) init(); else if (ac.state === "suspended") ac.resume(); },
+    start() {
+      if (!ac) {
+        init();
+        const b = ac.createBuffer(1, 1, 22050), s = ac.createBufferSource();
+        s.buffer = b; s.connect(ac.destination); s.start(0);
+        unlockIOS();
+      }
+      if (ac.state !== "running") ac.resume();
+    },
     toggle() {
       muted = !muted; localStorage.setItem("muted", muted ? "1" : "0");
       if (master) master.gain.value = muted ? 0 : 1;
@@ -949,8 +957,22 @@ const Snd = (() => {
   };
 })();
 
-addEventListener("pointerdown", () => Snd.start());
-addEventListener("keydown", () => Snd.start());
+// iOS routes WebAudio through the ringer switch; a looping silent <audio> element switches it to media playback
+function unlockIOS() {
+  try {
+    const n = 800, v = new DataView(new ArrayBuffer(44 + n * 2));
+    const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVEfmt ");
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, "data"); v.setUint32(40, n * 2, true);
+    const a = new Audio(URL.createObjectURL(new Blob([v], { type: "audio/wav" })));
+    a.loop = true; a.play().catch(() => {});
+    if (navigator.audioSession) navigator.audioSession.type = "playback";
+  } catch (e) {}
+}
+["pointerdown", "pointerup", "touchstart", "touchend", "click", "keydown"].forEach(ev =>
+  addEventListener(ev, () => Snd.start(), { passive: true }));
 document.addEventListener("visibilitychange", () => document.hidden ? Snd.suspend() : Snd.resume());
 function setMuteLabel(m) { $("mute").textContent = m ? "SND OFF" : "SND ON"; $("mute").classList.toggle("off", m); }
 setMuteLabel(Snd.muted);
