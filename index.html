@@ -461,7 +461,7 @@ function update(dt) {
 
 const HZ_GAP = { bh: [8, 5], wh: [7, 5], mg: [10, 5], qs: [2.5, 1.5] };
 const HZ_ORDER = ["bh", "wh", "mg", "qs"];
-const MG_LEN = 200;
+const MG_LEN = 140;
 const MG_SPIN = 6.8;
 const QS_ANGLES = [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4];
 
@@ -472,8 +472,8 @@ function spawnHazard(type) {
     Snd.warn();
     return;
   }
-  const r = { bh: 26, wh: 24, mg: 34 }[type] * unit;
-  const m = type === "mg" ? 110 * unit : r * 2;
+  const r = { bh: 26,   wh: 24, mg: 24 }[type] * unit;
+    const m = type === "mg" ? 80 * unit : r * 2;
   hz.push({
     type, age: 0, r, rot: 0,
     x: m + Math.random() * (W - 2 * m), y: type === "mg" ? -MG_LEN * unit * .7 : -r * 2,
